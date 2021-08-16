@@ -1,0 +1,97 @@
+{
+    "title": "A request.",
+    "type": "object",
+    "properties": {
+        "getWorks": {
+            "title": "Creation list request.",
+            "type": "object",
+            "properties": {
+                "workType": {
+                    "type": "string",
+                    "title": "Creation type.",
+                    "description": "0:video, 1:picture, 2:article, 3:resource",
+                    "enum": [
+                        "0", "1", "2", "3"
+                    ]
+                },
+                "classifyChoice": {
+                    "title": "Sub category used for <video> and <picture>.",
+                    "description": "video: 0all, 1cuts, 2MMD, 3other resource: 0all, 1MMD, 2voice, 3emote",
+                    "type": "string",
+                    "enum": [
+                        "0", "1", "2", "3"
+                    ]
+                },
+                "searchWord": {
+                    "description": "Text to search in creations.",
+                    "type": "string",
+                    "maxLength": 30
+                },
+                "pageNum": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "searchType": {
+                    "title": "Search type.",
+                    "description": "0:title, 1:creator",
+                    "type": "string",
+                    "enum": [
+                        "0",
+                        "1"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "workType",
+                "pageNum"
+            ]
+        },
+        "getAuthors": {
+            "title": "Creator list request.",
+            "type": "object",
+            "properties": {
+                "pageNum": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "searchWord": {
+                    "type": "string",
+                    "description": "Search keyword.",
+                    "maxLength": 30
+                },
+                "searchType": {
+                    "title": "Search type.",
+                    "description": "0: title, 1: uid",
+                    "type": "string",
+                    "enum": [
+                        "0",
+                        "1"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "pageNum"
+            ]
+        },
+        "getExcellentWorks": {
+            "title": "Excellent works request.",
+            "type": "object"
+        },
+        "creator": {
+            "title": "A creator request.",
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "uid"
+            ]
+        }
+    }
+}
