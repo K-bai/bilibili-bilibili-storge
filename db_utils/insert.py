@@ -3,7 +3,6 @@ from peewee import IntegrityError, fn
 from .db_declaration import CreationIndex, Creator, Creation, Raw, PicDownload, db, CREATION_TYPE, load_ext
 from .logger import logger
 
-
 TOPIC_ARTICLE = "呜能为栗"
 TOPIC_PIC_UMY = "图崽场"
 TOPIC_PIC_MERRY = "羊皮书"

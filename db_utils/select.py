@@ -1,4 +1,3 @@
-from json import load
 from peewee import fn
 from .db_declaration import CreationIndex, Creator, Creation, CREATION_TYPE, load_ext
 from .logger import logger
@@ -178,11 +177,6 @@ def get_creation_list(
         sub_category_filter = (Creation.sub_category == sub_category)
     else:
         sub_category_filter = True
-    # 联合投稿是否是拥有者
-    if sub_category:
-        is_owner_filter = (Creation.is_owner == is_owner)
-    else:
-        is_owner_filter = True
     # 排序依据
     if order_by == "rank" and search_text != None:
         order_by_sign = CreationIndex.rank()
@@ -203,6 +197,11 @@ def get_creation_list(
         display_filter = True
     else:
         display_filter = (Creation.display == display)
+    # 联合投稿是否是拥有者
+    if is_owner == None:
+        is_owner_filter = True
+    else:
+        is_owner_filter = (Creation.is_owner == is_owner)
     # 是否被审核
     if checked == None:
         checked_filter = True
@@ -213,7 +212,7 @@ def get_creation_list(
         # 存在搜索词
         load_ext()
         data = (Creation
-            .select(Creation, Creator.name, fn.Count().over().alias("count"))
+            .select(Creation, Creator.name, fn.Count(Creation.id).over().alias("count"))
             .join(Creator, on=(Creation.creator_uid == Creator.uid), attr="creator")
             .join(CreationIndex, on=(Creation.dynamic_id == CreationIndex.rowid), attr="index")
             .where(
@@ -230,7 +229,7 @@ def get_creation_list(
     else:
         # 不存在搜索词
         data = (Creation
-            .select(Creation, Creator.name, fn.Count().over().alias("count"))
+            .select(Creation, Creator.name, fn.Count(Creation.id).over().alias("count"))
             .join(Creator, on=(Creation.creator_uid == Creator.uid), attr="creator")
             .where(
                 type_filter, 
@@ -276,7 +275,7 @@ def get_creator_list(
     else:
         order_sign = Creator.last_update_time
     data = (Creator
-        .select()
+        .select(Creator, fn.Count(Creator.uid).over().alias("count"))
         .where(search_filter)
         .order_by(order_sign)
         .paginate(page, per_page))

@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger("db_logger")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 console = logging.StreamHandler()
 console.setFormatter(logging.Formatter("[%(levelname)s][%(asctime)s] %(message)s"))
