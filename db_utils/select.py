@@ -243,8 +243,9 @@ def get_creation_list(
             .paginate(page, per_page))
     # 输出
     output = []
-    print(data)
+    #print(data)
     for d in data:
+        #print(d)
         schema = DataMapping.creation(d)
         output.append(schema)
     if len(data)>0:

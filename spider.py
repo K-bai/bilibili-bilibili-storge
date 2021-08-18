@@ -1,5 +1,6 @@
 import requests, json, time
 from logger import logger
+from pic_download import download_all
 from db_utils.db_declaration import SpiderLog
 from db_utils.insert import insert_one_dynamic
 
@@ -28,7 +29,7 @@ st = {
 st_new = {
     "url": "https://api.vc.bilibili.com/topic_svr/v1/topic_svr/topic_new",
     "params": {
-        "topic_id": "15932687"
+        "topic_name": "呜米"
     }
 }
 
@@ -55,25 +56,26 @@ def get(api):
 
 
 def get_all_topic():
+    logger.info("开始爬取话题数据")
     # 遍历tag列表开始获取数据
     tag_list = list(SpiderLog.select().dicts())
     for tag_info in tag_list:
-        st["params"]["topic_name"] = tag_info["tag"]
-        st["params"]["offset_dynamic_id"] = 0
-        last_time = tag_info["last_dynamic_time"].timestamp()
-
-        continue_flag = True
-        card_time_list = []
-        logger.debug("开始爬取 <{:s}> 最新数据".format(tag_info["tag"]))
         # 获取最新数据
-        st_new["params"]["topic_id"] = str(tag_info["tag_id"])
+        logger.debug("开始爬取 <{:s}> 最新数据".format(tag_info["tag"]))
+        st_new["params"]["topic_name"] = tag_info["tag"]
         data = get(st_new)
         logger.debug("已获取{:d}条数据".format(len(data["cards"])))
-        logger.debug("开始爬取 <{:s}> 历史数据".format(tag_info["tag"]))
         # 遍历每一个卡片
         for card in data["cards"]:
             insert_one_dynamic(card)
+        
         # 获取历史数据
+        logger.debug("开始爬取 <{:s}> 历史数据".format(tag_info["tag"]))
+        st["params"]["topic_name"] = tag_info["tag"]
+        st["params"]["offset_dynamic_id"] = 0
+        last_time = tag_info["last_dynamic_time"].timestamp()
+        continue_flag = True
+        card_time_list = []
         while continue_flag:
             # 获取数据
             data = get(st)
@@ -101,6 +103,15 @@ def get_all_topic():
         record.save()
         # 休息10秒
         time.sleep(10)
-    logger.debug("本轮爬取已结束")
+    logger.info("本轮爬取已结束")
 
-get_all_topic()
+
+# 循环获取话题列表 间隔5分钟
+INTERVAL = 5*60
+while True:
+    # 爬数据
+    get_all_topic()
+    # 下图片
+    download_all()
+    # 休息
+    time.sleep(INTERVAL)
