@@ -1,6 +1,6 @@
 import json, uuid, time
 from peewee import IntegrityError, fn
-from .db_declaration import CreationIndex, Creator, Creation, Raw, PicDownload, db, CREATION_TYPE, load_ext
+from .db_declaration import CreationIndex, Creator, Creation, Raw, PicDownload, ExcellentWork, db, DYNAMIC_TYPE, load_ext
 from .logger import logger
 
 TOPIC_ARTICLE = "呜能为栗"
@@ -25,11 +25,32 @@ def save_pic(url, width=None, height=None):
     return name
 
 def serialize_tag(tags):
-    o = ""
-    for t in tags:
-        o += t
-        o += " "
-    return o
+    return " ".join(tags)
+
+def identify_video_category(data):
+    '''
+    自动识别视频的分类，按优先级排序
+    手书、动画-animation: title intro tags中包含“手书”
+    鬼畜-remix: title intro tags中包含“鬼畜”
+    MMD-mmd: title intro tags中包含“MMD”
+    歌曲切片-song: title intro tags中包含“歌”
+    直播切片-cut: title intro tags中包含“切片”
+    否则为None
+    '''
+    category_dict = {
+        "animation": ["手书"],
+        "remix": ["鬼畜"],
+        "mmd": ["MMD"],
+        "song": ["歌", "唱"],
+        "cut": ["切片", "剪辑", "羊肉片"],
+    }
+    content = data["title"] + data["intro"] + serialize_tag(data["tags"])
+    for k in category_dict:
+        for key_word in category_dict[k]:
+            if content.find(key_word) >= 0:
+                return k
+    return None
+
 
 def update_creator(row, last_update_info):
     data = {
@@ -95,7 +116,7 @@ def insert_normal(row):
         pics.append({"url": pic["img_src"], "file": pic_name})
     # 结构化数据
     data = {
-        "type": CREATION_TYPE["dynamic"],
+        "type": DYNAMIC_TYPE["dynamic"],
         "dynamic_id": row["desc"]["dynamic_id"],
         "id": row["desc"]["dynamic_id"],
         "creator_uid": row["desc"]["user_profile"]["info"]["uid"],
@@ -147,6 +168,7 @@ def insert_normal(row):
     Creation.create(**data)
     CreationIndex.create(**index_data)
     logger.debug("已创建图片动态 动态id:{}".format(data["dynamic_id"]))
+    return "Add new picture dynamic, id:{}".format(data["dynamic_id"])
 
 def insert_text_normal(row):
     card = json.loads(row["card"])
@@ -156,7 +178,7 @@ def insert_text_normal(row):
         tags.append(tag["topic_name"])
     # 结构化数据
     data = {
-        "type": CREATION_TYPE["dynamic"],
+        "type": DYNAMIC_TYPE["dynamic"],
         "dynamic_id": row["desc"]["dynamic_id"],
         "id": row["desc"]["dynamic_id"],
         "creator_uid": row["desc"]["user_profile"]["info"]["uid"],
@@ -199,6 +221,7 @@ def insert_text_normal(row):
     Creation.create(**data)
     CreationIndex.create(**index_data)
     logger.debug("已创建文字动态 动态id:{}".format(data["dynamic_id"]))
+    return "Add new text dynamic, id:{}".format(data["dynamic_id"])
 
 def insert_video(row):
     try:
@@ -211,7 +234,7 @@ def insert_video(row):
         pic_name = save_pic(card["pic"], width=500)
         # 结构化数据
         data = {
-            "type": CREATION_TYPE["video"],
+            "type": DYNAMIC_TYPE["video"],
             "dynamic_id": row["desc"]["dynamic_id"],
             "id": row["desc"]["bvid"],
             "creator_uid": row["desc"]["user_profile"]["info"]["uid"],
@@ -226,7 +249,7 @@ def insert_video(row):
                 "url": card["pic"],
                 "file": pic_name
             }],
-            "category": None,
+            "category": "video",
             "display": True,
             "view_data": {
                 "view": row["desc"]["view"],
@@ -249,6 +272,7 @@ def insert_video(row):
         db.rollback()
         return    
     # 判定分类 这里可以做智能判定？
+    data["sub_category"] = identify_video_category(data["info"])
     # 更新up主
     if data["display"]:
         update_info = {
@@ -260,6 +284,7 @@ def insert_video(row):
     Creation.create(**data)
     CreationIndex.create(**index_data)
     logger.debug("已创建视频 bvid:{}".format(data["id"]))
+    return "Add new video, bvid:{}".format(data["id"])
 
 def insert_article(row):
     card = json.loads(row["card"])
@@ -277,7 +302,7 @@ def insert_article(row):
         pics.append({"url": pic, "file": pic_name})
     # 结构化数据
     data = {
-        "type": CREATION_TYPE["article"],
+        "type": DYNAMIC_TYPE["article"],
         "dynamic_id": row["desc"]["dynamic_id"],
         "id": row["desc"]["rid"],
         "creator_uid": row["desc"]["user_profile"]["info"]["uid"],
@@ -289,6 +314,7 @@ def insert_article(row):
             "tags": tags,
         },
         "pics": pics,
+        "category": "article",
         "display": True,
         "view_data": {
             "view": row["desc"]["view"],
@@ -315,6 +341,7 @@ def insert_article(row):
     Creation.create(**data)
     CreationIndex.create(**index_data)
     logger.debug("已创建专栏 cvid:{}".format(data["id"]))
+    return "Add new article, cvid:{}".format(data["id"])
 
 def insert_one_dynamic(row):
     # 载入分词库
@@ -332,26 +359,55 @@ def insert_one_dynamic(row):
             logger.debug("新动态 动态id:{}".format(data["dynamic_id"]))
         except IntegrityError:
             logger.debug("重复动态 动态id:{}".format(data["dynamic_id"]))
-            return
+            return "Duplicated dynamic id."
 
         # 判定类型，仅包含1, 2, 4, 8, 64
         if data["type"] == 1:
             # 转发动态
-            insert_text_normal(row)
+            return insert_text_normal(row)
         elif data["type"] == 2:
             # 带图动态
-            insert_normal(row)
+            return insert_normal(row)
         elif data["type"] == 4:
             #纯文字动态
-            insert_text_normal(row)
+            return insert_text_normal(row)
         elif data["type"] == 8:
             #视频发布动态
-            insert_video(row)
+            return insert_video(row)
         elif data["type"] == 64:
             #专栏发布动态
-            insert_article(row)
+            return insert_article(row)
 
 
+def excellent_creation(
+    dynamic_id,
+    reason,
+    time
+):
+    '''
+    添加优秀作品
+    reason: 理由
+    time: 时间戳，评选时间
+    '''
+    # 先找有没有对应的作品
+    row = Creation.get_or_none(Creation.dynamic_id==int(dynamic_id))
+    if row==None:
+        return "No such dynamic id."
+    # 插入作品
+    data = {
+        "dynamic_id": dynamic_id,
+        "reason": reason,
+        "time": time
+    }
+    try:
+        ExcellentWork.create(**data)
+    except IntegrityError:
+        logger.debug("重复优秀作品 动态id:{}".format(data["dynamic_id"]))
+        return "Duplicated dynamic id."
+    except Exception as e:
+        return repr(e)
+    logger.debug("新优秀作品 动态id:{}".format(data["dynamic_id"]))
+    return "Success."
 
 '''
 with open("umy_main.json", "r", encoding="utf8") as f:

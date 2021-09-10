@@ -1,4 +1,5 @@
 {
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "A request.",
     "type": "object",
     "properties": {
@@ -9,22 +10,23 @@
                 "workType": {
                     "type": "string",
                     "title": "Creation type.",
-                    "description": "0:video, 1:picture, 2:article, 3:resource",
+                    "description": "-1:all, 0:video, 1:picture, 2:article, 3:resource",
                     "enum": [
-                        "0", "1", "2", "3"
+                        "-1", "0", "1", "2", "3"
                     ]
                 },
                 "classifyChoice": {
                     "title": "Sub category used for <video> and <picture>.",
-                    "description": "video: 0all, 1cuts, 2MMD, 3other resource: 0all, 1MMD, 2voice, 3emote",
+                    "description": "video: 0all, 1cuts 2song, 3remix, 4animation, 5MMD, 6other resource: 0all, 1MMD, 2voice, 3emote",
                     "type": "string",
                     "enum": [
-                        "0", "1", "2", "3"
+                        "0", "1", "2", "3", "4", "5", "6"
                     ]
                 },
                 "searchWord": {
                     "description": "Text to search in creations.",
                     "type": "string",
+                    "minLength": 1,
                     "maxLength": 30
                 },
                 "pageNum": {
@@ -33,11 +35,12 @@
                 },
                 "searchType": {
                     "title": "Search type.",
-                    "description": "0:title, 1:creator",
+                    "description": "0:content, 1:creator name, 2:uid",
                     "type": "string",
                     "enum": [
                         "0",
-                        "1"
+                        "1",
+                        "2"
                     ]
                 }
             },
@@ -58,15 +61,16 @@
                 "searchWord": {
                     "type": "string",
                     "description": "Search keyword.",
+                    "minLength": 1,
                     "maxLength": 30
                 },
                 "searchType": {
                     "title": "Search type.",
-                    "description": "0: title, 1: uid",
+                    "description": "1: title, 2: uid",
                     "type": "string",
                     "enum": [
-                        "0",
-                        "1"
+                        "1",
+                        "2"
                     ]
                 }
             },
@@ -79,19 +83,231 @@
             "title": "Excellent works request.",
             "type": "object"
         },
-        "creator": {
-            "title": "A creator request.",
+        "update_creation": {
+            "title": "Update a certain creation",
             "type": "object",
             "properties": {
+                "dynamic_id": {
+                    "title": "dynamic_id",
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 30
+                },
+                "display": {
+                    "title": "Update if is displayed on main page",
+                    "type": "boolean"
+                },
+                "checked": {
+                    "title": "Update if is checked by admin or not",
+                    "type": "boolean"
+                },
+                "sub_category": {
+                    "title": "Change sub category",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                }
+            },
+            "additionalProperties": false,
+            "minProperties": 2,
+            "required": [
+                "dynamic_id"
+            ]
+        },
+        "creation_list": {
+            "title": "A full creation list request.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "title": "creation type.",
+                    "type": "string",
+                    "enum": [
+                        "video",
+                        "picture",
+                        "article",
+                        "all"
+                    ]
+                },
+                "sub_category": {
+                    "title": "category filter",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                },
+                "search_type": {
+                    "title": "search type, only for creator name or content",
+                    "type": "string",
+                    "enum": [
+                        "creator_name",
+                        "content"
+                    ]
+                },
+                "search_text": {
+                    "title": "search key words, only functioned when search type is specified",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                },
+                "page": {
+                    "title": "page",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9999
+                },
+                "per_page": {
+                    "title": "number on a page",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                "order": {
+                    "title": "sort order",
+                    "type": "string",
+                    "enum": ["desc", "asc"]
+                },
+                "order_by": {
+                    "title": "data sorted on, can only be set to rank when search_type=content",
+                    "type": "string",
+                    "enum": ["time", "rank", "random"]
+                },
+                "start_time": {
+                    "title": "select after start time, unix timestamp",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2840112000
+                },
+                "end_time": {
+                    "title": "select before end time, unix timestamp",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2840112000
+                },
                 "uid": {
+                    "title": "uid filter",
                     "type": "integer",
                     "minimum": 1
+                },
+                "id": {
+                    "title": "id filter",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                },
+                "dynamic_id": {
+                    "title": "dynamic_id filter",
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 30
+                },
+                "display": {
+                    "title": "is displayed on main page",
+                    "type": "boolean"
+                },
+                "is_owner": {
+                    "title": "is owner on video",
+                    "type": "boolean"
+                },
+                "checked": {
+                    "title": "is checked by admin or not",
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "dependencies": {
+                "search_text": ["search_type"],
+                "search_type": ["search_text"]
+            }
+        },
+        "add_creation": {
+            "title": "Add a certain creation",
+            "type": "object",
+            "properties": {
+                "dynamic_id": {
+                    "title": "dynamic_id",
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 30
                 }
             },
             "additionalProperties": false,
             "required": [
-                "uid"
+                "dynamic_id"
+            ]
+        },
+        "excellent_creation_list": {
+            "title": "Excellent works request.",
+            "type": "object"
+        },
+        "add_excellent_creation": {
+            "title": "Add an excellent creation",
+            "type": "object",
+            "properties": {
+                "dynamic_id": {
+                    "title": "dynamic_id",
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 30
+                },
+                "reason": {
+                    "title": "reason",
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "time": {
+                    "title": "select time, unix timestamp",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2840112000
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "dynamic_id",
+                "reason",
+                "time"
+            ]
+        },
+        "delete_excellent_creation": {
+            "title": "Delete an excellent creation",
+            "type": "object",
+            "properties": {
+                "dynamic_id": {
+                    "title": "dynamic_id",
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 30
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "dynamic_id"
+            ]
+        },
+        "get_categorys": {
+            "title": "Get categorys.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "title": "resource type",
+                    "type": "string",
+                    "enum": ["video"]
+                }
+            }
+        },
+        "secret": {
+            "title": "Secret password for admin.",
+            "type": "string",
+            "enum": [
+                "test"
             ]
         }
+    },
+    "dependencies": {
+        "add_creation": ["secret"],
+        "creation_list": ["secret"],
+        "update_creation": ["secret"],
+        "add_excellent_creation": ["secret"],
+        "delete_excellent_creation": ["secret"],
+        "get_categorys": ["secret"]
     }
 }

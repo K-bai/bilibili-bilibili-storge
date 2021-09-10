@@ -8,11 +8,12 @@ db = SqliteExtDatabase('creation.db', pragmas=(
     ('cache_size', -1024 * 64),  # 64MB page-cache.
     ('journal_mode', 'wal'))) # Use WAL-mode (you should always use this!).
 
-CREATION_TYPE = {
+DYNAMIC_TYPE = {
     "video": 1,
     "article": 2,
     "dynamic": 3,
 }
+
 
 PIC_DOWNLOAD_STATUS = {
     "waiting": 0,
@@ -53,7 +54,7 @@ class Creator(BaseModel):
 # 作品数据表
 class Creation(BaseModel):
     type = IntegerField() # 二创分类(专栏、动态、视频)
-    dynamic_id = IntegerField(index=True) # 动态号
+    dynamic_id = IntegerField(primary_key=True) # 动态号
     id = TextField(index=True) # 动态、BV、CV号
     creator_uid = IntegerField(index=True) # up主uid
     time = TimestampField(index=True) # 发布时间
@@ -76,6 +77,12 @@ class Raw(BaseModel):
     type = IntegerField() # 动态类别（1转发别人动态 2带图动态 4纯文字动态 8视频发布动态 64专栏发布动态 2048推荐装扮动态）
     raw = JSONField(json_dumps = my_json_dumps) # 数据内容
 
+# MeUmy推荐的优秀作品
+class ExcellentWork(BaseModel):
+    dynamic_id = IntegerField(primary_key = True) # 动态id
+    time = TimestampField(index = True) # 推荐时间
+    reason = TextField(null = True) # 推荐理由
+
 # 图片下载记录
 class PicDownload(BaseModel):
     url = TextField() # 图片原始地址
@@ -87,6 +94,12 @@ class SpiderLog(BaseModel):
     tag = TextField() # tag名称
     tag_id = IntegerField() # tag id
     last_dynamic_time = TimestampField(default=946656000) # 爬取的最新一条动态的发送时间
+
+# 分类记录
+class CategoryList(BaseModel):
+    main = TextField() # 主分类 仅包括 video picture article
+    sub = TextField() # 次要分类
+    description = TextField() # 分类描述
 
 # 信息全文索引
 class CreationIndex(FTS5Model):
